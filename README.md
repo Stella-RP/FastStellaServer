@@ -69,6 +69,9 @@ Clone this repo, run `./gradlew applyPatches`, then `./gradlew createMojmapBundl
 
 To get a full list of tasks, run `./gradlew tasks`.
 
+`git add Paper-Server/src/main/java/net/minecraft/world/level/block/Blocks.java`
+`./gradlew.bat rebuildPatches`
+
 How To (Pull Request)
 ------
 See [Contributing](CONTRIBUTING.md)
