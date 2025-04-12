@@ -8,9 +8,26 @@ import java.nio.file.Path
 import java.util.regex.Pattern
 import kotlin.io.path.*
 
+buildscript {
+    dependencies {
+        classpath("org.kohsuke:github-api:1.135")
+        classpath("com.guardsquare:proguard-gradle:7.5.0")
+    }
+}
+
 plugins {
+    // Стандартные плагины
     java
+    `java-library`
+    id("eclipse")
     `maven-publish`
+    id("checkstyle")
+    id("com.diffplug.spotless") version "6.22.0"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("me.modmuss50.remotesign") version "0.4.0"
+
+    // Плагины для специфичных экосистем
+    id("fabric-loom") version "1.4-SNAPSHOT" apply false
     id("io.papermc.paperweight.core") version "1.7.1"
 }
 
@@ -54,6 +71,34 @@ subprojects {
 
 val spigotDecompiler: Configuration by configurations.creating
 
+configurations {
+    val include by creating {
+        isTransitive = false
+    }
+
+    val implementation by getting {
+        extendsFrom(include)
+    }
+
+    val installer by creating {
+        isTransitive = false
+    }
+
+    val installerLaunchWrapper by creating {
+        isTransitive = false
+        extendsFrom(installer)
+    }
+
+    val development by creating {
+        isTransitive = false
+    }
+
+    // val api by creating {
+    //     extendsFrom(installer, development)
+    // }
+}
+
+
 repositories {
     mavenCentral()
     maven(paperMavenPublicUrl) {
@@ -64,9 +109,42 @@ repositories {
             )
         }
     }
+
+    maven {
+        name = "Mojang"
+        url = uri("https://libraries.minecraft.net/")
+        content {
+            includeGroup("net.minecraft")
+        }
+    }
 }
 
 dependencies {
+    // fabric-loader dependencies
+    "installer"("org.ow2.asm:asm:${project.extra["asm_version"]}")
+    "installer"("org.ow2.asm:asm-analysis:${project.extra["asm_version"]}")
+    "installer"("org.ow2.asm:asm-commons:${project.extra["asm_version"]}")
+    "installer"("org.ow2.asm:asm-tree:${project.extra["asm_version"]}")
+    "installer"("org.ow2.asm:asm-util:${project.extra["asm_version"]}")
+    "installer"("net.fabricmc:sponge-mixin:${project.extra["mixin_version"]}")
+    "installerLaunchWrapper"("net.minecraft:launchwrapper:1.12")
+
+    // impl dependencies
+    "include"("org.ow2.sat4j:org.ow2.sat4j.core:2.3.6")
+    "include"("org.ow2.sat4j:org.ow2.sat4j.pb:2.3.6")
+    "include"("net.fabricmc:tiny-remapper:0.10.4")
+    "include"("net.fabricmc:access-widener:2.1.0")
+    "include"("net.fabricmc:mapping-io:0.5.0") {
+        // Mapping-io depends on ASM, don't bundle
+        isTransitive = false
+    }
+
+    "development"("io.github.llamalad7:mixinextras-fabric:${project.extra["mixin_extras_version"]}")
+
+    "testCompileOnly"("org.jetbrains:annotations:23.0.0")
+
+
+    // paper
     paramMappings("net.fabricmc:yarn:1.20.6+build.1:mergedv2")
     remapper("net.fabricmc:tiny-remapper:0.10.2:fat")
     decompiler("org.vineflower:vineflower:1.10.1")
